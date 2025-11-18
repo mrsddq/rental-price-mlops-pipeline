@@ -51,9 +51,7 @@ if __name__ == "__main__":
     
     # connect to kfp server
     # host = 'http://localhost:8080'
-    # kfp_endpoint = 'http://localhost:8080'
-
-    kfp_endpoint = None
+    kfp_endpoint = 'http://localhost:8080'
     client = kfp.Client(host=kfp_endpoint)
     
     # create an experiment
