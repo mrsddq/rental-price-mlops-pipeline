@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from .data import build_feature_target, load_housing_data
+from .config import DEFAULT_CONFIG, TrainingConfig
+from .data import load_housing_data, split_feature_target
 from .metrics import RegressionMetrics, regression_metrics
 
 
@@ -12,18 +13,11 @@ class TrainingResult:
     test_rows: int
 
 
-def train_and_evaluate(data_path: str | Path, test_size: float = 0.2, random_state: int = 42) -> TrainingResult:
+def train_and_evaluate(data_path: str | Path, config: TrainingConfig = DEFAULT_CONFIG) -> TrainingResult:
     from sklearn.linear_model import LinearRegression
-    from sklearn.model_selection import train_test_split
 
     frame = load_housing_data(data_path)
-    features, target = build_feature_target(frame)
-    x_train, x_test, y_train, y_test = train_test_split(
-        features,
-        target,
-        test_size=test_size,
-        random_state=random_state,
-    )
+    x_train, x_test, y_train, y_test = split_feature_target(frame, config)
 
     model = LinearRegression().fit(x_train, y_train)
     predictions = model.predict(x_test)

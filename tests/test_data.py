@@ -2,6 +2,7 @@ import unittest
 
 import pandas as pd
 
+from rental_mlops.config import TrainingConfig
 from rental_mlops.data import build_feature_target, summarize_housing_data, validate_housing_data
 
 
@@ -40,6 +41,22 @@ class HousingDataTests(unittest.TestCase):
         features, target = build_feature_target(frame)
 
         self.assertEqual(features.tolist(), [[2, 800]])
+        self.assertEqual(target.tolist(), [1200])
+
+    def test_build_feature_target_uses_configured_columns(self):
+        frame = pd.DataFrame(
+            {
+                "rooms": [2],
+                "sqft": [800],
+                "price": [1200],
+                "neighborhood_score": [7],
+            }
+        )
+        config = TrainingConfig(feature_columns=("rooms", "neighborhood_score"))
+
+        features, target = build_feature_target(frame, config)
+
+        self.assertEqual(features.tolist(), [[2, 7]])
         self.assertEqual(target.tolist(), [1200])
 
 

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .config import DEFAULT_CONFIG, TrainingConfig
 
 REQUIRED_COLUMNS = ("rooms", "sqft", "price")
 
@@ -54,6 +55,18 @@ def summarize_housing_data(frame: pd.DataFrame) -> DatasetReport:
     )
 
 
-def build_feature_target(frame: pd.DataFrame):
+def build_feature_target(frame: pd.DataFrame, config: TrainingConfig = DEFAULT_CONFIG):
     validate_housing_data(frame)
-    return frame[["rooms", "sqft"]].to_numpy(), frame["price"].to_numpy()
+    return frame[list(config.feature_columns)].to_numpy(), frame[config.target_column].to_numpy()
+
+
+def split_feature_target(frame: pd.DataFrame, config: TrainingConfig = DEFAULT_CONFIG):
+    from sklearn.model_selection import train_test_split
+
+    features, target = build_feature_target(frame, config)
+    return train_test_split(
+        features,
+        target,
+        test_size=config.test_size,
+        random_state=config.random_state,
+    )
