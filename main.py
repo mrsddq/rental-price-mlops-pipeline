@@ -6,6 +6,7 @@ from kfp import compiler, dsl
 
 from rental_mlops.data import load_housing_data, summarize_housing_data
 from rental_mlops.model import train_and_evaluate
+from rental_mlops.predict import RentalInput, fit_price_model, predict_price
 
 
 PIPELINE_FILE = "rental_price_prediction_pipeline.yaml"
@@ -71,6 +72,12 @@ def evaluate_local_model(data_path):
     print(f"Baseline ({result.baseline.name}) RMSE: {result.baseline.metrics.rmse:.2f}")
 
 
+def predict_local_price(data_path, rooms, sqft):
+    model = fit_price_model(data_path)
+    prediction = predict_price(model, RentalInput(rooms=rooms, sqft=sqft))
+    print(f"Predicted monthly rent: {prediction:.2f}")
+
+
 def run_pipeline(host, experiment_name):
     client = kfp.Client(host=host)
     client.create_run_from_pipeline_func(
@@ -91,6 +98,9 @@ def parse_args():
     parser.add_argument("--data", default=DATA_PATH, help="Path to the housing CSV file.")
     parser.add_argument("--validate-data", action="store_true", help="Validate and summarize the dataset.")
     parser.add_argument("--evaluate-local", action="store_true", help="Train and evaluate the local model.")
+    parser.add_argument("--predict", action="store_true", help="Fit locally and predict one rental price.")
+    parser.add_argument("--rooms", type=float, help="Room count for --predict.")
+    parser.add_argument("--sqft", type=float, help="Square footage for --predict.")
     return parser.parse_args()
 
 
@@ -102,6 +112,11 @@ if __name__ == "__main__":
 
     if args.evaluate_local:
         evaluate_local_model(args.data)
+
+    if args.predict:
+        if args.rooms is None or args.sqft is None:
+            raise ValueError("--rooms and --sqft are required when using --predict")
+        predict_local_price(args.data, args.rooms, args.sqft)
 
     compile_pipeline(args.output)
 
