@@ -2,8 +2,10 @@ import argparse
 from pathlib import Path
 
 from rental_mlops.data import load_housing_data, summarize_housing_data
+from rental_mlops.model_card import render_model_card
 from rental_mlops.model import train_and_evaluate
 from rental_mlops.predict import RentalInput, fit_price_model, predict_price
+from rental_mlops.quality import DEFAULT_GATE, evaluate_quality, write_quality_report
 
 
 PIPELINE_FILE = "rental_price_prediction_pipeline.yaml"
@@ -73,12 +75,32 @@ def evaluate_local_model(data_path):
     print(f"MAE: {result.metrics.mae:.2f}")
     print(f"R2: {result.metrics.r2:.4f}")
     print(f"Baseline ({result.baseline.name}) RMSE: {result.baseline.metrics.rmse:.2f}")
+    quality = evaluate_quality(result, DEFAULT_GATE)
+    print(f"Quality gate passed: {quality.passed}")
+    for failure in quality.failures:
+        print(f"Gate failure: {failure}")
 
 
 def predict_local_price(data_path, rooms, sqft):
     model = fit_price_model(data_path)
     prediction = predict_price(model, RentalInput(rooms=rooms, sqft=sqft))
     print(f"Predicted monthly rent: {prediction:.2f}")
+
+
+def write_reports(data_path, output_dir):
+    output = Path(output_dir)
+    frame = load_housing_data(data_path)
+    dataset = summarize_housing_data(frame)
+    result = train_and_evaluate(data_path)
+    quality = evaluate_quality(result)
+    write_quality_report(output / "quality-report.json", quality)
+    (output / "model-card.md").write_text(
+        render_model_card(dataset, result, quality),
+        encoding="utf-8",
+    )
+    print(f"Wrote reports to {output.resolve()}")
+    if not quality.passed:
+        raise SystemExit(2)
 
 
 def run_pipeline(host, experiment_name):
@@ -105,6 +127,8 @@ def parse_args():
     parser.add_argument("--validate-data", action="store_true", help="Validate and summarize the dataset.")
     parser.add_argument("--evaluate-local", action="store_true", help="Train and evaluate the local model.")
     parser.add_argument("--predict", action="store_true", help="Fit locally and predict one rental price.")
+    parser.add_argument("--write-reports", action="store_true", help="Write model card and quality gate reports.")
+    parser.add_argument("--report-dir", default="outputs/reports")
     parser.add_argument("--rooms", type=float, help="Room count for --predict.")
     parser.add_argument("--sqft", type=float, help="Square footage for --predict.")
     return parser.parse_args()
@@ -123,6 +147,9 @@ if __name__ == "__main__":
         if args.rooms is None or args.sqft is None:
             raise ValueError("--rooms and --sqft are required when using --predict")
         predict_local_price(args.data, args.rooms, args.sqft)
+
+    if args.write_reports:
+        write_reports(args.data, args.report_dir)
 
     if not args.no_compile:
         compile_pipeline(args.output)

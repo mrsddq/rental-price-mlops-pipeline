@@ -50,10 +50,20 @@ python main.py --validate-data --compile-only
 python main.py --evaluate-local --compile-only
 python main.py --predict --rooms 3 --sqft 1100 --compile-only
 python main.py --validate-data --no-compile
+python main.py --no-compile --write-reports --report-dir outputs/reports
 ```
 
 The validation path checks the expected schema and summarizes the sample dataset. The local evaluation path trains the same linear regression workflow and prints RMSE, MAE, and R2.
 The prediction path fits the local model and scores a single rental example.
+
+## Production Engineering Layer
+
+- Dataset validation and summary reporting
+- Train/test evaluation against a mean-price baseline
+- Quality gate with RMSE, MAE, R2, and baseline-lift thresholds
+- Generated model card and JSON quality report
+- CI checks for tests, compile safety, model quality, and pipeline compilation
+- Make targets for install, test, compile, evaluate, reports, and clean
 
 ## Run Against Kubeflow
 

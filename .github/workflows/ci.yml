@@ -18,5 +18,7 @@ jobs:
         run: python -m unittest discover -s tests
       - name: Compile pipeline code
         run: python -m compileall main.py rental_mlops tests
+      - name: Run model quality gate
+        run: python main.py --no-compile --write-reports --report-dir outputs/reports
       - name: Compile Kubeflow pipeline
         run: python main.py --compile-only --output /tmp/rental_price_prediction_pipeline.yaml
