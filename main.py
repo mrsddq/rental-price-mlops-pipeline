@@ -4,6 +4,9 @@ from pathlib import Path
 import kfp
 from kfp import compiler, dsl
 
+from rental_mlops.data import load_housing_data, summarize_housing_data
+from rental_mlops.model import train_and_evaluate
+
 
 PIPELINE_FILE = "rental_price_prediction_pipeline.yaml"
 DATA_PATH = "data/housing_1000.csv"
@@ -48,6 +51,25 @@ def compile_pipeline(output_path=PIPELINE_FILE):
     print(f"Compiled pipeline: {Path(output_path).resolve()}")
 
 
+def validate_dataset(data_path):
+    frame = load_housing_data(data_path)
+    report = summarize_housing_data(frame)
+    print(f"Rows: {report.row_count}")
+    print(f"Columns: {report.column_count}")
+    print(f"Average sqft: {report.average_sqft:.2f}")
+    print(f"Average price: {report.average_price:.2f}")
+    print(f"Price range: {report.min_price:.2f} - {report.max_price:.2f}")
+
+
+def evaluate_local_model(data_path):
+    result = train_and_evaluate(data_path)
+    print(f"Train rows: {result.train_rows}")
+    print(f"Test rows: {result.test_rows}")
+    print(f"RMSE: {result.metrics.rmse:.2f}")
+    print(f"MAE: {result.metrics.mae:.2f}")
+    print(f"R2: {result.metrics.r2:.4f}")
+
+
 def run_pipeline(host, experiment_name):
     client = kfp.Client(host=host)
     client.create_run_from_pipeline_func(
@@ -65,11 +87,21 @@ def parse_args():
     parser.add_argument("--host", help="Kubeflow Pipelines endpoint, for example http://localhost:8080.")
     parser.add_argument("--experiment", default="Rental Price Prediction")
     parser.add_argument("--output", default=PIPELINE_FILE)
+    parser.add_argument("--data", default=DATA_PATH, help="Path to the housing CSV file.")
+    parser.add_argument("--validate-data", action="store_true", help="Validate and summarize the dataset.")
+    parser.add_argument("--evaluate-local", action="store_true", help="Train and evaluate the local model.")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if args.validate_data:
+        validate_dataset(args.data)
+
+    if args.evaluate_local:
+        evaluate_local_model(args.data)
+
     compile_pipeline(args.output)
 
     if args.run:

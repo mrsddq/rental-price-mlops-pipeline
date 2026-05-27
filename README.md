@@ -33,6 +33,15 @@ python main.py --compile-only
 
 This writes `rental_price_prediction_pipeline.yaml`.
 
+## Validate Data And Evaluate Locally
+
+```bash
+python main.py --validate-data --compile-only
+python main.py --evaluate-local --compile-only
+```
+
+The validation path checks the expected schema and summarizes the sample dataset. The local evaluation path trains the same linear regression workflow and prints RMSE, MAE, and R2.
+
 ## Run Against Kubeflow
 
 ```bash
