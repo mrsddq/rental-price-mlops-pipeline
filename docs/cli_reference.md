@@ -9,6 +9,7 @@ python main.py --compile-only
 python main.py --validate-data --compile-only
 python main.py --evaluate-local --compile-only
 python main.py --predict --rooms 3 --sqft 1100 --compile-only
+python main.py --validate-data --no-compile
 ```
 
 ## Options
@@ -16,6 +17,7 @@ python main.py --predict --rooms 3 --sqft 1100 --compile-only
 | Option | Purpose |
 | --- | --- |
 | `--compile-only` | Compile the pipeline YAML and exit without submitting a run. |
+| `--no-compile` | Run local validation, evaluation, or prediction without compiling YAML. |
 | `--run` | Submit the pipeline to a Kubeflow Pipelines endpoint. |
 | `--host` | Kubeflow Pipelines endpoint used with `--run`. |
 | `--experiment` | Experiment name for submitted runs. |

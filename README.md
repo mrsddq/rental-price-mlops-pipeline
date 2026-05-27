@@ -49,6 +49,7 @@ This writes `rental_price_prediction_pipeline.yaml`.
 python main.py --validate-data --compile-only
 python main.py --evaluate-local --compile-only
 python main.py --predict --rooms 3 --sqft 1100 --compile-only
+python main.py --validate-data --no-compile
 ```
 
 The validation path checks the expected schema and summarizes the sample dataset. The local evaluation path trains the same linear regression workflow and prints RMSE, MAE, and R2.
