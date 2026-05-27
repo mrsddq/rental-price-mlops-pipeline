@@ -9,7 +9,8 @@
 ## 2. Training
 
 - Use deterministic train/test splits.
-- Log metrics.
+- Log RMSE, MAE, and R2 metrics.
+- Compare model performance with a mean-price baseline.
 - Save model artifacts.
 
 ## 3. Pipeline

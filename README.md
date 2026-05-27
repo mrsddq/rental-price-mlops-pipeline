@@ -10,9 +10,13 @@ This repository demonstrates the first useful MLOps milestone: turn a local scik
 data/
   housing_1000.csv
 rental_mlops/
+  baseline.py
+  config.py
   data.py
+  features.py
   metrics.py
   model.py
+  predict.py
 tests/
 main.py
 Dockerfile
@@ -44,9 +48,11 @@ This writes `rental_price_prediction_pipeline.yaml`.
 ```bash
 python main.py --validate-data --compile-only
 python main.py --evaluate-local --compile-only
+python main.py --predict --rooms 3 --sqft 1100 --compile-only
 ```
 
 The validation path checks the expected schema and summarizes the sample dataset. The local evaluation path trains the same linear regression workflow and prints RMSE, MAE, and R2.
+The prediction path fits the local model and scores a single rental example.
 
 ## Run Against Kubeflow
 
