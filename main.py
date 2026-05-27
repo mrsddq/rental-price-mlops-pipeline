@@ -68,6 +68,7 @@ def evaluate_local_model(data_path):
     print(f"RMSE: {result.metrics.rmse:.2f}")
     print(f"MAE: {result.metrics.mae:.2f}")
     print(f"R2: {result.metrics.r2:.4f}")
+    print(f"Baseline ({result.baseline.name}) RMSE: {result.baseline.metrics.rmse:.2f}")
 
 
 def run_pipeline(host, experiment_name):
