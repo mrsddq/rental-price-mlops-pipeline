@@ -6,20 +6,20 @@ from kfp import compiler, dsl
 
 
 PIPELINE_FILE = "rental_price_prediction_pipeline.yaml"
-DATA_URL = "https://raw.githubusercontent.com/mrsddq/mlops-project/master/data/housing_1000.csv"
+DATA_PATH = "data/housing_1000.csv"
 
 
 @dsl.component(
     base_image="python:3.10",
     packages_to_install=["pandas==2.2.2", "numpy==2.1.1", "scikit-learn==1.5.1"],
 )
-def train_rental_price_model(data_url: str = DATA_URL) -> float:
+def train_rental_price_model(data_path: str = DATA_PATH) -> float:
     import pandas as pd
     from sklearn.linear_model import LinearRegression
     from sklearn.metrics import mean_squared_error
     from sklearn.model_selection import train_test_split
 
-    frame = pd.read_csv(data_url)
+    frame = pd.read_csv(data_path)
     features = frame[["rooms", "sqft"]].values
     target = frame["price"].values
 

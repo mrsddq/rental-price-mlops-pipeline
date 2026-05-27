@@ -1,6 +1,6 @@
 # MLOps Project
 
-Kubeflow Pipelines starter project for rental price prediction.
+Kubeflow Pipelines project for rental price prediction.
 
 This repository demonstrates the first useful MLOps milestone: turn a local scikit-learn model workflow into a reproducible pipeline artifact that can be compiled and submitted to Kubeflow.
 
@@ -51,7 +51,7 @@ docker run --rm rental-price-pipeline:local python main.py --compile-only
 - componentized model training
 - reproducible pipeline compilation
 - container-friendly entry point
-- local dataset reference instead of hidden remote dependency
+- local dataset reference instead of remote data dependency
 - experiment/run separation
 
 ## Next Improvements

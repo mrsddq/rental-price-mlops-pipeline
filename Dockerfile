@@ -1,13 +1,11 @@
-FROM python:3.10-slim
+FROM python:3.10.14-slim-bookworm
 
 LABEL maintainer="laraibks@gmail.com"
 
-WORKDIR /mlapp
+WORKDIR /app
 
-COPY main.py main.py
-COPY requirements.txt requirements.txt
+COPY . .
 
-# RUN pip install numpy pandas scikit-learn
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["python", "main.py", "--compile-only"]
