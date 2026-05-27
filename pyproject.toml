@@ -1,0 +1,17 @@
+[project]
+name = "rental-price-mlops"
+version = "0.1.0"
+description = "Rental price prediction pipeline utilities and Kubeflow compiler entry point"
+requires-python = ">=3.10"
+dependencies = [
+  "kfp==2.14.3",
+  "numpy==2.1.1",
+  "pandas==2.2.2",
+  "scikit-learn==1.5.1",
+]
+
+[tool.setuptools]
+packages = ["rental_mlops"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

@@ -9,11 +9,17 @@ This repository demonstrates the first useful MLOps milestone: turn a local scik
 ```text
 data/
   housing_1000.csv
+rental_mlops/
+  data.py
+  metrics.py
+  model.py
+tests/
 main.py
 Dockerfile
 requirements.txt
 rental_price_prediction_pipeline.yaml
 docs/
+  data_contract.md
   lifecycle.md
 ```
 

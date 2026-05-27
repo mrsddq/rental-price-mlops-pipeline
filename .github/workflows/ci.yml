@@ -14,7 +14,9 @@ jobs:
           python-version: "3.10"
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Run unit tests
+        run: python -m unittest discover -s tests
       - name: Compile pipeline code
-        run: python -m py_compile main.py
+        run: python -m compileall main.py rental_mlops tests
       - name: Compile Kubeflow pipeline
         run: python main.py --compile-only --output /tmp/rental_price_prediction_pipeline.yaml
