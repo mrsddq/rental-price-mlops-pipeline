@@ -24,6 +24,7 @@ requirements.txt
 rental_price_prediction_pipeline.yaml
 docs/
   data_contract.md
+  PORTFOLIO_EVIDENCE.md
   lifecycle.md
 ```
 
@@ -65,6 +66,10 @@ The prediction path fits the local model and scores a single rental example.
 - CI checks for tests, compile safety, model quality, and pipeline compilation
 - Make targets for install, test, compile, evaluate, reports, and clean
 
+## Portfolio Evidence
+
+Use [docs/PORTFOLIO_EVIDENCE.md](docs/PORTFOLIO_EVIDENCE.md) to generate the model card, quality report, and pipeline artifact before pinning or presenting this repo.
+
 ## Run Against Kubeflow
 
 ```bash
@@ -90,6 +95,5 @@ docker run --rm rental-price-pipeline:local python main.py --compile-only
 
 - split data preparation, training, evaluation, and registration into separate components
 - add model artifact output
-- log RMSE/R2 metrics
-- add CI to compile the pipeline on every PR
+- publish a sample quality report generated from the current data snapshot
 - add a lightweight FastAPI serving layer
