@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from rental_mlops.artifacts import write_model_artifact
 from rental_mlops.data import load_housing_data, summarize_housing_data
 from rental_mlops.model_card import render_model_card
 from rental_mlops.model import train_and_evaluate
@@ -103,6 +104,14 @@ def write_reports(data_path, output_dir):
         raise SystemExit(2)
 
 
+def write_artifact(data_path, artifact_path):
+    metadata = write_model_artifact(artifact_path, data_path)
+    print(f"Wrote model artifact to {Path(artifact_path).resolve()}")
+    print(f"Artifact version: {metadata['artifact_version']}")
+    print(f"Model type: {metadata['model_type']}")
+    print(f"Quality gate passed: {metadata['quality']['passed']}")
+
+
 def run_pipeline(host, experiment_name):
     import kfp
 
@@ -129,6 +138,8 @@ def parse_args():
     parser.add_argument("--predict", action="store_true", help="Fit locally and predict one rental price.")
     parser.add_argument("--write-reports", action="store_true", help="Write model card and quality gate reports.")
     parser.add_argument("--report-dir", default="outputs/reports")
+    parser.add_argument("--write-artifact", action="store_true", help="Train and write a local model artifact.")
+    parser.add_argument("--artifact-path", default="outputs/model/rental-price-model.pkl")
     parser.add_argument("--rooms", type=float, help="Room count for --predict.")
     parser.add_argument("--sqft", type=float, help="Square footage for --predict.")
     return parser.parse_args()
@@ -150,6 +161,9 @@ if __name__ == "__main__":
 
     if args.write_reports:
         write_reports(args.data, args.report_dir)
+
+    if args.write_artifact:
+        write_artifact(args.data, args.artifact_path)
 
     if not args.no_compile:
         compile_pipeline(args.output)

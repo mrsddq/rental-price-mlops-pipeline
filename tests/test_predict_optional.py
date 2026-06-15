@@ -10,6 +10,12 @@ class RentalInputTests(unittest.TestCase):
 
         self.assertEqual(row, [3, 1200])
 
+    def test_rental_input_rejects_non_positive_values(self):
+        with self.assertRaisesRegex(ValueError, "rooms"):
+            RentalInput(rooms=0, sqft=1200)
+        with self.assertRaisesRegex(ValueError, "sqft"):
+            RentalInput(rooms=3, sqft=0)
+
 
 @unittest.skipIf(importlib.util.find_spec("sklearn") is None, "scikit-learn is not installed")
 class PredictionTests(unittest.TestCase):

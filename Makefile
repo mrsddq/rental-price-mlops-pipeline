@@ -1,4 +1,4 @@
-.PHONY: install test compile evaluate reports clean
+.PHONY: install test compile evaluate reports artifact serve clean
 
 install:
 	python -m pip install --upgrade pip
@@ -15,6 +15,12 @@ evaluate:
 
 reports:
 	python main.py --no-compile --write-reports --report-dir outputs/reports
+
+artifact:
+	python main.py --no-compile --write-artifact --artifact-path outputs/model/rental-price-model.pkl
+
+serve:
+	uvicorn rental_mlops.serving:create_app --factory --host 0.0.0.0 --port 8000
 
 clean:
 	python -c "import shutil; from pathlib import Path; [shutil.rmtree(path, ignore_errors=True) for path in Path('.').rglob('__pycache__')]; shutil.rmtree('outputs', ignore_errors=True)"

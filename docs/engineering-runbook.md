@@ -12,16 +12,22 @@
 
 ## Setup
 
-``bash
+```bash
 python -m pip install -r requirements.txt
-``
+```
 
 ## Verification
 
-``bash
+```bash
 python -m unittest discover -s tests
 python -m compileall -q .
-``
+```
+
+## Local API
+
+```bash
+uvicorn rental_mlops.serving:create_app --factory --host 0.0.0.0 --port 8000
+```
 
 ## Release Hygiene
 

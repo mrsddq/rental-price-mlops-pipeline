@@ -12,6 +12,12 @@ class RentalInput:
     rooms: float
     sqft: float
 
+    def __post_init__(self):
+        if self.rooms <= 0:
+            raise ValueError("rooms must be positive")
+        if self.sqft <= 0:
+            raise ValueError("sqft must be positive")
+
     def as_feature_row(self, config: TrainingConfig = DEFAULT_CONFIG):
         values = {
             "rooms": self.rooms,

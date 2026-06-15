@@ -12,6 +12,7 @@
 - Log RMSE, MAE, and R2 metrics.
 - Compare model performance with a mean-price baseline.
 - Save model artifacts.
+- Attach model metadata and quality-gate status to artifacts.
 
 ## 3. Pipeline
 
@@ -24,9 +25,11 @@
 - Build a container image.
 - Submit the pipeline to Kubeflow.
 - Track experiments and runs.
+- Serve local predictions through the FastAPI API for review/demo workflows.
 
 ## 5. Monitoring
 
 - Compare live inputs to training data.
 - Track prediction quality when labels arrive.
 - Retrain when drift or performance decay is detected.
+- Emit prediction events with range warnings for out-of-distribution inputs.
