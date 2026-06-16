@@ -1,4 +1,4 @@
-# MLOps Project
+# Rental Price MLOps Pipeline
 
 Kubeflow Pipelines project for rental price prediction.
 
