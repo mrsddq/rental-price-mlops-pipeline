@@ -30,5 +30,17 @@ class ServingContractTests(unittest.TestCase):
         self.assertIn("warnings", payload)
 
 
+@unittest.skipIf(importlib.util.find_spec("fastapi") is None, "FastAPI is not installed")
+class ServingApiSchemaTests(unittest.TestCase):
+    def test_predict_accepts_json_request_body(self):
+        from rental_mlops.serving import create_app
+
+        app = create_app(DATA_PATH)
+        operation = app.openapi()["paths"]["/predict"]["post"]
+
+        self.assertIn("requestBody", operation)
+        self.assertNotIn("parameters", operation)
+
+
 if __name__ == "__main__":
     unittest.main()

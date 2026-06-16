@@ -4,13 +4,16 @@ LABEL maintainer="laraibks@gmail.com"
 
 WORKDIR /app
 
-COPY . .
-
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN useradd --create-home --shell /usr/sbin/nologin appuser
+COPY . .
+
+RUN useradd --create-home --shell /usr/sbin/nologin appuser \
+    && mkdir -p /app/outputs \
+    && chown -R appuser:appuser /app/outputs
 USER appuser
 
 EXPOSE 8000
 
-CMD ["python", "main.py", "--compile-only"]
+CMD ["python", "main.py", "--compile-only", "--output", "outputs/rental_price_prediction_pipeline.yaml"]

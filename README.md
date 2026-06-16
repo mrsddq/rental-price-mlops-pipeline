@@ -107,7 +107,7 @@ python main.py --host http://localhost:8080 --run
 
 ```bash
 docker build -t rental-price-pipeline:local .
-docker run --rm rental-price-pipeline:local python main.py --compile-only
+docker run --rm rental-price-pipeline:local
 docker compose up --build
 ```
 

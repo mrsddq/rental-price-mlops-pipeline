@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 from .data import load_housing_data, summarize_housing_data
