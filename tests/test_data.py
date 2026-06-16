@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 
 from rental_mlops.config import TrainingConfig
-from rental_mlops.data import build_feature_target, summarize_housing_data, validate_housing_data
+from rental_mlops.data import build_feature_target, split_feature_target, summarize_housing_data, validate_housing_data
 
 
 class HousingDataTests(unittest.TestCase):
@@ -34,6 +34,18 @@ class HousingDataTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "positive"):
             validate_housing_data(frame)
+
+    def test_validate_housing_data_rejects_non_numeric_values(self):
+        frame = pd.DataFrame({"rooms": ["two"], "sqft": [800], "price": [1200]})
+
+        with self.assertRaisesRegex(ValueError, "numeric"):
+            validate_housing_data(frame)
+
+    def test_split_feature_target_requires_enough_rows(self):
+        frame = pd.DataFrame({"rooms": [2], "sqft": [800], "price": [1200]})
+
+        with self.assertRaisesRegex(ValueError, "at least two rows"):
+            split_feature_target(frame)
 
     def test_build_feature_target(self):
         frame = pd.DataFrame({"rooms": [2], "sqft": [800], "price": [1200]})

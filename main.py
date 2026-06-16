@@ -3,6 +3,7 @@ from pathlib import Path
 
 from rental_mlops.artifacts import write_model_artifact
 from rental_mlops.data import load_housing_data, summarize_housing_data
+from rental_mlops.drift import write_drift_report
 from rental_mlops.model_card import render_model_card
 from rental_mlops.model import train_and_evaluate
 from rental_mlops.predict import RentalInput, fit_price_model, predict_price
@@ -104,6 +105,18 @@ def write_reports(data_path, output_dir):
         raise SystemExit(2)
 
 
+def write_drift(data_path, drift_data_path, output_path, threshold):
+    baseline = load_housing_data(data_path)
+    candidate = load_housing_data(drift_data_path)
+    report = write_drift_report(output_path, baseline, candidate, threshold)
+    print(f"Wrote drift report to {Path(output_path).resolve()}")
+    print(f"Drift check passed: {report.passed}")
+    for column in report.exceeded_columns:
+        print(f"Drift exceeded threshold for: {column}")
+    if not report.passed:
+        raise SystemExit(2)
+
+
 def write_artifact(data_path, artifact_path):
     metadata = write_model_artifact(artifact_path, data_path)
     print(f"Wrote model artifact to {Path(artifact_path).resolve()}")
@@ -138,6 +151,10 @@ def parse_args():
     parser.add_argument("--predict", action="store_true", help="Fit locally and predict one rental price.")
     parser.add_argument("--write-reports", action="store_true", help="Write model card and quality gate reports.")
     parser.add_argument("--report-dir", default="outputs/reports")
+    parser.add_argument("--write-drift-report", action="store_true", help="Compare a candidate CSV against the training data profile.")
+    parser.add_argument("--drift-data", help="Candidate CSV path for --write-drift-report.")
+    parser.add_argument("--drift-report-path", default="outputs/reports/drift-report.json")
+    parser.add_argument("--drift-threshold", type=float, default=0.25)
     parser.add_argument("--write-artifact", action="store_true", help="Train and write a local model artifact.")
     parser.add_argument("--artifact-path", default="outputs/model/rental-price-model.pkl")
     parser.add_argument("--rooms", type=float, help="Room count for --predict.")
@@ -161,6 +178,11 @@ if __name__ == "__main__":
 
     if args.write_reports:
         write_reports(args.data, args.report_dir)
+
+    if args.write_drift_report:
+        if not args.drift_data:
+            raise ValueError("--drift-data is required when using --write-drift-report")
+        write_drift(args.data, args.drift_data, args.drift_report_path, args.drift_threshold)
 
     if args.write_artifact:
         write_artifact(args.data, args.artifact_path)

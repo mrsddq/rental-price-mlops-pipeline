@@ -22,5 +22,15 @@ jobs:
         run: python main.py --no-compile --write-reports --report-dir outputs/reports
       - name: Write model artifact
         run: python main.py --no-compile --write-artifact --artifact-path outputs/model/rental-price-model.pkl
+      - name: Upload model reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: rental-price-reports
+          path: outputs/reports
+      - name: Upload packaged model metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: rental-price-model
+          path: outputs/model/rental-price-model.pkl
       - name: Compile Kubeflow pipeline
         run: python main.py --compile-only --output /tmp/rental_price_prediction_pipeline.yaml

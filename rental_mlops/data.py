@@ -21,6 +21,8 @@ class DatasetReport:
 def load_housing_data(path: str | Path) -> pd.DataFrame:
     frame = pd.read_csv(path)
     validate_housing_data(frame)
+    for column in REQUIRED_COLUMNS:
+        frame[column] = pd.to_numeric(frame[column])
     return frame
 
 
@@ -32,13 +34,17 @@ def validate_housing_data(frame: pd.DataFrame) -> None:
     if frame.empty:
         raise ValueError("housing dataset must contain at least one row")
 
-    numeric_columns = frame.loc[:, REQUIRED_COLUMNS]
+    try:
+        numeric_columns = frame.loc[:, REQUIRED_COLUMNS].apply(pd.to_numeric)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("rooms, sqft, and price must be numeric") from exc
+
     if numeric_columns.isna().any().any():
         raise ValueError("housing dataset contains missing numeric values")
 
-    invalid_rooms = frame["rooms"] <= 0
-    invalid_sqft = frame["sqft"] <= 0
-    invalid_price = frame["price"] <= 0
+    invalid_rooms = numeric_columns["rooms"] <= 0
+    invalid_sqft = numeric_columns["sqft"] <= 0
+    invalid_price = numeric_columns["price"] <= 0
     if invalid_rooms.any() or invalid_sqft.any() or invalid_price.any():
         raise ValueError("rooms, sqft, and price must all be positive")
 
@@ -57,11 +63,16 @@ def summarize_housing_data(frame: pd.DataFrame) -> DatasetReport:
 
 def build_feature_target(frame: pd.DataFrame, config: TrainingConfig = DEFAULT_CONFIG):
     validate_housing_data(frame)
-    return frame[list(config.feature_columns)].to_numpy(), frame[config.target_column].to_numpy()
+    features = frame[list(config.feature_columns)].apply(pd.to_numeric).to_numpy()
+    target = pd.to_numeric(frame[config.target_column]).to_numpy()
+    return features, target
 
 
 def split_feature_target(frame: pd.DataFrame, config: TrainingConfig = DEFAULT_CONFIG):
     from sklearn.model_selection import train_test_split
+
+    if len(frame) < 2:
+        raise ValueError("housing dataset must contain at least two rows for train/test split")
 
     features, target = build_feature_target(frame, config)
     return train_test_split(
