@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rental-price-api
+description: Rental price model serving API.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

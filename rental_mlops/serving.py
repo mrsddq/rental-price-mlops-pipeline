@@ -8,6 +8,29 @@ from .predict import RentalInput, fit_price_model, predict_price
 DATA_PATH = Path("data/housing_1000.csv")
 
 
+class ServingMetrics:
+    def __init__(self) -> None:
+        self.requests = 0
+        self.warnings = 0
+
+    def observe_prediction(self, warning_count: int) -> None:
+        self.requests += 1
+        self.warnings += warning_count
+
+    def prometheus_text(self) -> str:
+        return "\n".join(
+            [
+                "# HELP rental_price_predictions_total Total prediction requests.",
+                "# TYPE rental_price_predictions_total counter",
+                f"rental_price_predictions_total {self.requests}",
+                "# HELP rental_price_prediction_warnings_total Total prediction warnings.",
+                "# TYPE rental_price_prediction_warnings_total counter",
+                f"rental_price_prediction_warnings_total {self.warnings}",
+                "",
+            ]
+        )
+
+
 def build_health_payload(data_path: str | Path = DATA_PATH) -> dict[str, object]:
     frame = load_housing_data(data_path)
     report = summarize_housing_data(frame)
@@ -28,7 +51,7 @@ def build_prediction_payload(model, training_frame, rooms: float, sqft: float) -
 
 
 def create_app(data_path: str | Path = DATA_PATH):
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Response
     from pydantic import BaseModel, Field
 
     class PredictionRequest(BaseModel):
@@ -42,6 +65,7 @@ def create_app(data_path: str | Path = DATA_PATH):
     )
     training_frame = load_housing_data(data_path)
     model = fit_price_model(data_path)
+    metrics = ServingMetrics()
 
     @app.get("/health")
     def health():
@@ -49,6 +73,12 @@ def create_app(data_path: str | Path = DATA_PATH):
 
     @app.post("/predict")
     def predict(request: PredictionRequest):
-        return build_prediction_payload(model, training_frame, request.rooms, request.sqft)
+        payload = build_prediction_payload(model, training_frame, request.rooms, request.sqft)
+        metrics.observe_prediction(len(payload["warnings"]))
+        return payload
+
+    @app.get("/metrics")
+    def prometheus_metrics():
+        return Response(metrics.prometheus_text(), media_type="text/plain; version=0.0.4")
 
     return app

@@ -2,7 +2,7 @@
 
 Kubeflow Pipelines project for rental price prediction.
 
-This repository demonstrates the first useful MLOps milestone: turn a local scikit-learn model workflow into a reproducible pipeline artifact that can be compiled and submitted to Kubeflow.
+This repository demonstrates an end-to-end MLOps workflow: data validation, model training, quality gates, model artifact packaging, registry metadata, FastAPI serving, Docker runtime, Kubernetes/Helm deployment, GitOps promotion, monitoring, drift checks, and rollback documentation.
 
 ## Structure
 
@@ -19,17 +19,23 @@ rental_mlops/
   model.py
   monitoring.py
   predict.py
+  registry.py
   serving.py
 tests/
 main.py
 Dockerfile
 docker-compose.yml
+helm/
+kubernetes/
+mlflow/
 requirements.txt
 rental_price_prediction_pipeline.yaml
 docs/
   API.md
+  DEPLOYMENT.md
   data_contract.md
   PORTFOLIO_EVIDENCE.md
+  RUNBOOK.md
   SYSTEM_DESIGN.md
   lifecycle.md
 ```
@@ -59,6 +65,7 @@ python main.py --predict --rooms 3 --sqft 1100 --compile-only
 python main.py --validate-data --no-compile
 python main.py --no-compile --write-reports --report-dir outputs/reports
 python main.py --no-compile --write-artifact --artifact-path outputs/model/rental-price-model.pkl
+python main.py --no-compile --write-registry-record --registry-path outputs/model/registry-record.json
 ```
 
 The validation path checks the expected schema and summarizes the sample dataset. The local evaluation path trains the same linear regression workflow and prints RMSE, MAE, and R2.
@@ -79,6 +86,15 @@ curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -
 
 See [docs/API.md](docs/API.md) for the full API contract.
 
+## Deploy With GitOps
+
+```bash
+helm template rental-price-api helm/rental-price-api
+kubectl apply -f kubernetes/argocd/application.yaml
+```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/RUNBOOK.md](docs/RUNBOOK.md) for model promotion, rollback, and incident handling.
+
 ## Production Engineering Layer
 
 - Dataset validation and summary reporting
@@ -86,10 +102,13 @@ See [docs/API.md](docs/API.md) for the full API contract.
 - Quality gate with RMSE, MAE, R2, and baseline-lift thresholds
 - Generated model card and JSON quality report
 - Exportable model artifact with metadata and quality report
+- MLflow-style registry record for model promotion
 - FastAPI serving layer with input-range monitoring warnings
 - Docker Compose API runtime
+- Helm chart and Argo CD Application for Kubernetes deployment
+- PrometheusRule, ServiceMonitor, and Grafana dashboard starters
 - CI checks for tests, compile safety, model quality, and pipeline compilation
-- Make targets for install, test, compile, evaluate, reports, artifact, serve, and clean
+- Make targets for install, test, compile, evaluate, reports, artifact, registry, serve, and clean
 
 ## Portfolio Evidence
 
@@ -125,5 +144,4 @@ docker compose up --build
 
 - split data preparation, training, evaluation, and registration into separate components
 - publish a sample quality report generated from the current data snapshot
-- add a model registry handoff instead of local pickle artifacts
 - add request/response logging to durable storage

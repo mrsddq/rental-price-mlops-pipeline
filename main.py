@@ -8,6 +8,7 @@ from rental_mlops.model_card import render_model_card
 from rental_mlops.model import train_and_evaluate
 from rental_mlops.predict import RentalInput, fit_price_model, predict_price
 from rental_mlops.quality import DEFAULT_GATE, evaluate_quality, write_quality_report
+from rental_mlops.registry import write_registry_record
 
 
 PIPELINE_FILE = "rental_price_prediction_pipeline.yaml"
@@ -125,6 +126,20 @@ def write_artifact(data_path, artifact_path):
     print(f"Quality gate passed: {metadata['quality']['passed']}")
 
 
+def write_registry(data_path, registry_path, artifact_path, model_version, image_tag, stage):
+    record = write_registry_record(
+        output_path=registry_path,
+        data_path=data_path,
+        artifact_path=artifact_path,
+        version=model_version,
+        image_tag=image_tag,
+        stage=stage,
+    )
+    print(f"Wrote registry record to {Path(registry_path).resolve()}")
+    print(f"Model version: {record.version}")
+    print(f"Approval status: {record.approval_status}")
+
+
 def run_pipeline(host, experiment_name):
     import kfp
 
@@ -157,6 +172,11 @@ def parse_args():
     parser.add_argument("--drift-threshold", type=float, default=0.25)
     parser.add_argument("--write-artifact", action="store_true", help="Train and write a local model artifact.")
     parser.add_argument("--artifact-path", default="outputs/model/rental-price-model.pkl")
+    parser.add_argument("--write-registry-record", action="store_true", help="Write MLflow-style model registry metadata.")
+    parser.add_argument("--registry-path", default="outputs/model/registry-record.json")
+    parser.add_argument("--model-version", default="1.0.0")
+    parser.add_argument("--image-tag", default="1.0.0")
+    parser.add_argument("--stage", default="staging")
     parser.add_argument("--rooms", type=float, help="Room count for --predict.")
     parser.add_argument("--sqft", type=float, help="Square footage for --predict.")
     return parser.parse_args()
@@ -186,6 +206,9 @@ if __name__ == "__main__":
 
     if args.write_artifact:
         write_artifact(args.data, args.artifact_path)
+
+    if args.write_registry_record:
+        write_registry(args.data, args.registry_path, args.artifact_path, args.model_version, args.image_tag, args.stage)
 
     if not args.no_compile:
         compile_pipeline(args.output)

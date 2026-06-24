@@ -2,7 +2,7 @@ import importlib.util
 import unittest
 from pathlib import Path
 
-from rental_mlops.serving import build_health_payload, build_prediction_payload
+from rental_mlops.serving import ServingMetrics, build_health_payload, build_prediction_payload
 
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "housing_1000.csv"
@@ -29,6 +29,14 @@ class ServingContractTests(unittest.TestCase):
         self.assertIn("event_id", payload)
         self.assertIn("warnings", payload)
 
+    def test_serving_metrics_render_prometheus_text(self):
+        metrics = ServingMetrics()
+        metrics.observe_prediction(2)
+        text = metrics.prometheus_text()
+
+        self.assertIn("rental_price_predictions_total 1", text)
+        self.assertIn("rental_price_prediction_warnings_total 2", text)
+
 
 @unittest.skipIf(importlib.util.find_spec("fastapi") is None, "FastAPI is not installed")
 class ServingApiSchemaTests(unittest.TestCase):
@@ -40,6 +48,7 @@ class ServingApiSchemaTests(unittest.TestCase):
 
         self.assertIn("requestBody", operation)
         self.assertNotIn("parameters", operation)
+        self.assertIn("/metrics", app.openapi()["paths"])
 
 
 if __name__ == "__main__":

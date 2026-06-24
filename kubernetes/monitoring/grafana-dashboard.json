@@ -1,0 +1,22 @@
+{
+  "title": "Rental Price MLOps Serving",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Prediction Requests",
+      "targets": [{"expr": "rate(rental_price_predictions_total[5m])"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Prediction Warnings",
+      "targets": [{"expr": "rate(rental_price_prediction_warnings_total[5m])"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pod Restarts",
+      "targets": [{"expr": "increase(kube_pod_container_status_restarts_total{namespace=\"rental-mlops\"}[1h])"}]
+    }
+  ]
+}

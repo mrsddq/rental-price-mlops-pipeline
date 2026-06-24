@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rental-price-api
+  namespace: rental-mlops
+spec:
+  groups:
+    - name: rental-price-api
+      rules:
+        - alert: RentalPriceApiHighErrorRate
+          expr: increase(kube_pod_container_status_restarts_total{namespace="rental-mlops"}[15m]) > 2
+          for: 10m
+          labels:
+            severity: page
+          annotations:
+            summary: Rental price API pods are restarting repeatedly.
+            runbook_url: docs/RUNBOOK.md
