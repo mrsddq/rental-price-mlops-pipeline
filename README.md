@@ -1,5 +1,7 @@
 # Rental Price MLOps Pipeline
 
+[![CI](https://github.com/mrsddq/rental-price-mlops-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/mrsddq/rental-price-mlops-pipeline/actions/workflows/ci.yml)
+
 Kubeflow Pipelines project for rental price prediction.
 
 This repository demonstrates an end-to-end MLOps workflow: data validation, model training, quality gates, model artifact packaging, registry metadata, FastAPI serving, Docker runtime, Kubernetes/Helm deployment, GitOps promotion, monitoring, drift checks, and rollback documentation.

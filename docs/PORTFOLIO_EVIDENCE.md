@@ -20,7 +20,10 @@ uvicorn rental_mlops.serving:create_app --factory --host 0.0.0.0 --port 8000
 | `outputs/reports/quality-report.json` | `python main.py --no-compile --write-reports --report-dir outputs/reports` | Shows RMSE, MAE, R2, baseline lift, and quality gate status. |
 | `outputs/reports/model-card.md` | `python main.py --no-compile --write-reports --report-dir outputs/reports` | Documents dataset, limitations, and intended use. |
 | `outputs/model/rental-price-model.pkl` | `python main.py --no-compile --write-artifact --artifact-path outputs/model/rental-price-model.pkl` | Demonstrates model packaging with metadata. |
+| `outputs/model/registry-record.json` | `python main.py --no-compile --write-registry-record --registry-path outputs/model/registry-record.json` | Shows model-version promotion metadata and approval status. |
 | `rental_price_prediction_pipeline.yaml` | `python main.py --compile-only` | Shows Kubeflow pipeline compilation. |
+| `helm/rental-price-api/` | N/A | Shows Kubernetes deployment, HPA, ServiceMonitor and model-version values. |
+| `kubernetes/argocd/application.yaml` | N/A | Shows GitOps deployment path. |
 | `docs/SYSTEM_DESIGN.md` | N/A | Explains architecture and production gaps. |
 | `docs/API.md` | N/A | Documents the local FastAPI serving contract. |
 | CI run | GitHub Actions `ci.yml` | Proves tests, quality gate, and pipeline compilation run together. |
@@ -32,7 +35,8 @@ uvicorn rental_mlops.serving:create_app --factory --host 0.0.0.0 --port 8000
 3. Generate reports that make the quality gate auditable.
 4. Compile the workflow into a Kubeflow pipeline artifact.
 5. Export a local model artifact and serve a prediction through the FastAPI layer.
-6. Explain the next production step: model registry, durable request logs, drift dashboards, and split pipeline components.
+6. Explain the Kubernetes promotion path through Helm values and Argo CD.
+7. Explain the next production step: real MLflow tracked runs, durable request logs, drift dashboards, retraining triggers, and controlled rollout.
 
 ## Evidence Checklist Before Pinning
 
@@ -40,6 +44,8 @@ uvicorn rental_mlops.serving:create_app --factory --host 0.0.0.0 --port 8000
 - [ ] Fresh `outputs/reports/quality-report.json`.
 - [ ] Fresh `outputs/reports/model-card.md`.
 - [ ] Fresh `outputs/model/rental-price-model.pkl`.
+- [ ] Fresh `outputs/model/registry-record.json`.
 - [ ] Screenshot or terminal capture of `/health` and `/predict`.
+- [ ] Screenshot or terminal capture of `/metrics`.
 - [ ] Screenshot or gist of successful CI run.
 - [ ] README result summary updated from real generated reports.
