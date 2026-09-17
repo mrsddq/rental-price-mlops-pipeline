@@ -18,6 +18,10 @@ def regression_metrics(actual, predicted) -> RegressionMetrics:
         raise ValueError("actual and predicted arrays must have the same shape")
     if actual_values.size == 0:
         raise ValueError("metrics require at least one prediction")
+    if actual_values.ndim != 1:
+        raise ValueError("metrics require one-dimensional arrays")
+    if not np.isfinite(actual_values).all() or not np.isfinite(predicted_values).all():
+        raise ValueError("metrics require finite values")
 
     errors = actual_values - predicted_values
     rmse = float(np.sqrt(np.mean(errors**2)))
@@ -25,6 +29,11 @@ def regression_metrics(actual, predicted) -> RegressionMetrics:
 
     total_variance = float(np.sum((actual_values - actual_values.mean()) ** 2))
     residual_variance = float(np.sum(errors**2))
-    r2 = 1.0 if total_variance == 0 and residual_variance == 0 else 1 - residual_variance / total_variance
+    # Match the finite constant-target convention: perfect predictions are 1,
+    # otherwise 0. An undefined division must never reach a quality gate.
+    if total_variance == 0:
+        r2 = 1.0 if residual_variance == 0 else 0.0
+    else:
+        r2 = 1 - residual_variance / total_variance
 
     return RegressionMetrics(rmse=rmse, mae=mae, r2=float(r2))

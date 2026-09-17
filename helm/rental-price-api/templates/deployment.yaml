@@ -20,15 +20,13 @@ spec:
         - name: api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["uvicorn"]
+          args: ["rental_mlops.serving:create_app", "--factory", "--host", "0.0.0.0", "--port", {{ .Values.service.targetPort | quote }}]
           ports:
             - containerPort: {{ .Values.service.targetPort }}
           env:
-            - name: MODEL_NAME
-              value: {{ .Values.model.name | quote }}
-            - name: MODEL_VERSION
-              value: {{ .Values.model.version | quote }}
-            - name: MODEL_STAGE
-              value: {{ .Values.model.stage | quote }}
+            - name: MODEL_ARTIFACT_PATH
+              value: {{ .Values.model.artifactPath | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           readinessProbe:

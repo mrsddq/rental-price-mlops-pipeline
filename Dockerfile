@@ -9,6 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN python main.py --no-compile --write-artifact --artifact-path outputs/model/rental-price-model.pkl
+
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
     && mkdir -p /app/outputs \
     && chown -R appuser:appuser /app/outputs
