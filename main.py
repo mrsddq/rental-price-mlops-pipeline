@@ -22,13 +22,26 @@ def build_pipeline():
         base_image="python:3.10",
         packages_to_install=["pandas==2.2.2", "numpy==2.1.1", "scikit-learn==1.5.1"],
     )
-    def train_rental_price_model(data_path: str = DATA_PATH) -> float:
+    def train_rental_price_model(dataset: dsl.Input[dsl.Dataset]) -> float:
+        import numpy as np
         import pandas as pd
         from sklearn.linear_model import LinearRegression
         from sklearn.metrics import mean_squared_error
         from sklearn.model_selection import train_test_split
 
-        frame = pd.read_csv(data_path)
+        frame = pd.read_csv(dataset.path)
+        required = ["rooms", "sqft", "price"]
+        if not set(required).issubset(frame.columns) or len(frame) < 2:
+            raise ValueError(
+                "dataset requires rooms, sqft, price and at least two rows"
+            )
+        numeric = frame[required].apply(pd.to_numeric)
+        if (
+            not np.isfinite(numeric.to_numpy(dtype=float)).all()
+            or (numeric <= 0).any().any()
+        ):
+            raise ValueError("dataset values must be finite and positive")
+        frame[required] = numeric
         features = frame[["rooms", "sqft"]].values
         target = frame["price"].values
 
@@ -41,13 +54,14 @@ def build_pipeline():
 
         model = LinearRegression().fit(x_train, y_train)
         predictions = model.predict(x_test)
-        rmse = mean_squared_error(y_test, predictions, squared=False)
+        rmse = np.sqrt(mean_squared_error(y_test, predictions))
         print(f"RMSE: {rmse:.2f}")
         return float(rmse)
 
     @dsl.pipeline(name="rental-price-prediction-pipeline")
-    def rental_price_prediction_pipeline() -> float:
-        training_task = train_rental_price_model()
+    def rental_price_prediction_pipeline(dataset_uri: str) -> float:
+        dataset = dsl.importer(artifact_uri=dataset_uri, artifact_class=dsl.Dataset)
+        training_task = train_rental_price_model(dataset=dataset.output)
         return training_task.output
 
     return rental_price_prediction_pipeline
@@ -126,7 +140,9 @@ def write_artifact(data_path, artifact_path):
     print(f"Quality gate passed: {metadata['quality']['passed']}")
 
 
-def write_registry(data_path, registry_path, artifact_path, model_version, image_tag, stage):
+def write_registry(
+    data_path, registry_path, artifact_path, model_version, image_tag, stage
+):
     record = write_registry_record(
         output_path=registry_path,
         data_path=data_path,
@@ -140,7 +156,7 @@ def write_registry(data_path, registry_path, artifact_path, model_version, image
     print(f"Approval status: {record.approval_status}")
 
 
-def run_pipeline(host, experiment_name):
+def run_pipeline(host, experiment_name, dataset_uri):
     import kfp
 
     client = kfp.Client(host=host)
@@ -148,31 +164,84 @@ def run_pipeline(host, experiment_name):
         pipeline_func=build_pipeline(),
         run_name="rental-price-prediction-run",
         experiment_name=experiment_name,
+        arguments={"dataset_uri": dataset_uri},
     )
     print(f"Submitted pipeline run to {host}")
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--compile-only", action="store_true", help="Compile the pipeline YAML and exit.")
-    parser.add_argument("--no-compile", action="store_true", help="Run local checks without compiling the pipeline.")
-    parser.add_argument("--run", action="store_true", help="Submit the pipeline to a Kubeflow endpoint.")
-    parser.add_argument("--host", help="Kubeflow Pipelines endpoint, for example http://localhost:8080.")
+    parser.add_argument(
+        "--compile-only",
+        action="store_true",
+        help="Compile the pipeline YAML and exit.",
+    )
+    parser.add_argument(
+        "--no-compile",
+        action="store_true",
+        help="Run local checks without compiling the pipeline.",
+    )
+    parser.add_argument(
+        "--run", action="store_true", help="Submit the pipeline to a Kubeflow endpoint."
+    )
+    parser.add_argument(
+        "--host", help="Kubeflow Pipelines endpoint, for example http://localhost:8080."
+    )
     parser.add_argument("--experiment", default="Rental Price Prediction")
     parser.add_argument("--output", default=PIPELINE_FILE)
-    parser.add_argument("--data", default=DATA_PATH, help="Path to the housing CSV file.")
-    parser.add_argument("--validate-data", action="store_true", help="Validate and summarize the dataset.")
-    parser.add_argument("--evaluate-local", action="store_true", help="Train and evaluate the local model.")
-    parser.add_argument("--predict", action="store_true", help="Fit locally and predict one rental price.")
-    parser.add_argument("--write-reports", action="store_true", help="Write model card and quality gate reports.")
+    parser.add_argument(
+        "--data", default=DATA_PATH, help="Path to the housing CSV file."
+    )
+    parser.add_argument(
+        "--dataset-uri",
+        help="Cluster-accessible CSV artifact URI for --run; local --data is not uploaded.",
+    )
+    parser.add_argument(
+        "--validate-data",
+        action="store_true",
+        help="Validate and summarize the dataset.",
+    )
+    parser.add_argument(
+        "--evaluate-local",
+        action="store_true",
+        help="Train and evaluate the local model.",
+    )
+    parser.add_argument(
+        "--predict",
+        action="store_true",
+        help="Fit locally and predict one rental price.",
+    )
+    parser.add_argument(
+        "--write-reports",
+        action="store_true",
+        help="Write model card and quality gate reports.",
+    )
     parser.add_argument("--report-dir", default="outputs/reports")
-    parser.add_argument("--write-drift-report", action="store_true", help="Compare a candidate CSV against the training data profile.")
-    parser.add_argument("--drift-data", help="Candidate CSV path for --write-drift-report.")
-    parser.add_argument("--drift-report-path", default="outputs/reports/drift-report.json")
+    parser.add_argument(
+        "--write-drift-report",
+        action="store_true",
+        help="Compare a candidate CSV against the training data profile.",
+    )
+    parser.add_argument(
+        "--drift-data", help="Candidate CSV path for --write-drift-report."
+    )
+    parser.add_argument(
+        "--drift-report-path", default="outputs/reports/drift-report.json"
+    )
     parser.add_argument("--drift-threshold", type=float, default=0.25)
-    parser.add_argument("--write-artifact", action="store_true", help="Train and write a local model artifact.")
-    parser.add_argument("--artifact-path", default="outputs/model/rental-price-model.pkl")
-    parser.add_argument("--write-registry-record", action="store_true", help="Write MLflow-style model registry metadata.")
+    parser.add_argument(
+        "--write-artifact",
+        action="store_true",
+        help="Train and write a local model artifact.",
+    )
+    parser.add_argument(
+        "--artifact-path", default="outputs/model/rental-price-model.pkl"
+    )
+    parser.add_argument(
+        "--write-registry-record",
+        action="store_true",
+        help="Write MLflow-style model registry metadata.",
+    )
     parser.add_argument("--registry-path", default="outputs/model/registry-record.json")
     parser.add_argument("--model-version", default="1.0.0")
     parser.add_argument("--image-tag", default="1.0.0")
@@ -202,22 +271,33 @@ if __name__ == "__main__":
     if args.write_drift_report:
         if not args.drift_data:
             raise ValueError("--drift-data is required when using --write-drift-report")
-        write_drift(args.data, args.drift_data, args.drift_report_path, args.drift_threshold)
+        write_drift(
+            args.data, args.drift_data, args.drift_report_path, args.drift_threshold
+        )
 
     if args.write_artifact:
         write_artifact(args.data, args.artifact_path)
 
     if args.write_registry_record:
-        write_registry(args.data, args.registry_path, args.artifact_path, args.model_version, args.image_tag, args.stage)
+        write_registry(
+            args.data,
+            args.registry_path,
+            args.artifact_path,
+            args.model_version,
+            args.image_tag,
+            args.stage,
+        )
 
     if not args.no_compile:
         compile_pipeline(args.output)
 
     if args.run:
-        if not args.host:
-            raise ValueError("--host is required when using --run")
-        run_pipeline(args.host, args.experiment)
+        if not args.host or not args.dataset_uri:
+            raise ValueError("--host and --dataset-uri are required when using --run")
+        run_pipeline(args.host, args.experiment, args.dataset_uri)
     elif args.no_compile:
         print("Local checks complete. Pipeline compilation was skipped.")
     elif not args.compile_only:
-        print("Pipeline compiled. Use --run --host <endpoint> to submit it to Kubeflow.")
+        print(
+            "Pipeline compiled. Use --run --host <endpoint> to submit it to Kubeflow."
+        )

@@ -1,31 +1,58 @@
 # PIPELINE DEFINITION
 # Name: rental-price-prediction-pipeline
+# Inputs:
+#    dataset_uri: str
 # Outputs:
 #    Output: float
 components:
-  comp-predict-rental-price-model:
-    executorLabel: exec-predict-rental-price-model
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-train-rental-price-model:
+    executorLabel: exec-train-rental-price-model
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
     outputDefinitions:
       parameters:
         Output:
           parameterType: NUMBER_DOUBLE
 deploymentSpec:
   executors:
-    exec-predict-rental-price-model:
+    exec-importer:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-train-rental-price-model:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - predict_rental_price_model
+        - train_rental_price_model
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'pandas == 1.2.4'\
-          \ 'numpy == 1.21.0' 'scikit-learn == 0.24.2'  &&  python3 -m pip install\
-          \ --quiet --no-warn-script-location 'kfp==2.14.3' '--no-deps' 'typing-extensions>=3.7.4,<5;\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.2'\
+          \ 'numpy==2.1.1' 'scikit-learn==1.5.1'  &&  python3 -m pip install --quiet\
+          \ --no-warn-script-location 'kfp==2.14.3' '--no-deps' 'typing-extensions>=3.7.4,<5;\
           \ python_version<\"3.9\"' && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -38,24 +65,24 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef predict_rental_price_model() -> float:\n    import numpy as np\n\
-          \    import pandas as pd\n    import pickle\n    from sklearn.linear_model\
-          \ import LinearRegression\n    from sklearn.model_selection import train_test_split\n\
-          \    from sklearn.metrics import mean_squared_error\n    from sklearn.metrics\
-          \ import r2_score\n\n    # Load dataset\n    df = pd.read_csv(\"https://raw.githubusercontent.com/mrsddq/MLOps-Project/refs/heads/master/src/data/housing_1000.csv\"\
-          )\n\n    # Prepare Data\n    X = df[['rooms', 'sqft']].values # Features\
-          \ - rooms and sqft\n    y = df['price' ].values\n\n    # Split Data for\
-          \ Training and Testing\n    X_train, X_test, y_train, y_test = train_test_split(X,\
-          \ y, test_size=0.2)\n\n    # Model Training\n    model = LinearRegression().fit(X_train,\
-          \ y_train) # Train the model\n\n    # Actuals and Predictions from the dataset\n\
-          \    #predicted_rental = model.predict(np.array([[X_test[0][0], X_test[0][1]]]))\n\
-          \    predicted_rental = model.predict(X_test[0].reshape(1,-1))[0]\n\n  \
-          \  print(\"Actual Rental Price for Property with rooms=\",X_test[0][0],\"\
-          and Area Sqft=\",X_test[0][1],\"is=\",y_test[0])\n    print(\"Predicted\
-          \ Rental Price for Property with rooms=\",X_test[0][0],\"and Area Sqft=\"\
-          ,X_test[0][1],\"is=\",predicted_rental)\n\n    return float(predicted_rental)\
-          \ # Return a single float value\n\n"
-        image: python:3.9
+          \ *\n\ndef train_rental_price_model(dataset: dsl.Input[dsl.Dataset]) ->\
+          \ float:\n    import numpy as np\n    import pandas as pd\n    from sklearn.linear_model\
+          \ import LinearRegression\n    from sklearn.metrics import mean_squared_error\n\
+          \    from sklearn.model_selection import train_test_split\n\n    frame =\
+          \ pd.read_csv(dataset.path)\n    required = [\"rooms\", \"sqft\", \"price\"\
+          ]\n    if not set(required).issubset(frame.columns) or len(frame) < 2:\n\
+          \        raise ValueError(\"dataset requires rooms, sqft, price and at least\
+          \ two rows\")\n    numeric = frame[required].apply(pd.to_numeric)\n    if\
+          \ not np.isfinite(numeric.to_numpy(dtype=float)).all() or (numeric <= 0).any().any():\n\
+          \        raise ValueError(\"dataset values must be finite and positive\"\
+          )\n    frame[required] = numeric\n    features = frame[[\"rooms\", \"sqft\"\
+          ]].values\n    target = frame[\"price\"].values\n\n    x_train, x_test,\
+          \ y_train, y_test = train_test_split(\n        features,\n        target,\n\
+          \        test_size=0.2,\n        random_state=42,\n    )\n\n    model =\
+          \ LinearRegression().fit(x_train, y_train)\n    predictions = model.predict(x_test)\n\
+          \    rmse = np.sqrt(mean_squared_error(y_test, predictions))\n    print(f\"\
+          RMSE: {rmse:.2f}\")\n    return float(rmse)\n\n"
+        image: python:3.10
 pipelineInfo:
   name: rental-price-prediction-pipeline
 root:
@@ -65,15 +92,38 @@ root:
         Output:
           valueFromParameter:
             outputParameterKey: Output
-            producerSubtask: predict-rental-price-model
+            producerSubtask: train-rental-price-model
     tasks:
-      predict-rental-price-model:
+      importer:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-predict-rental-price-model
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              componentInputParameter: dataset_uri
         taskInfo:
-          name: predict-rental-price-model
+          name: importer
+      train-rental-price-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-rental-price-model
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: train-rental-price-model
+  inputDefinitions:
+    parameters:
+      dataset_uri:
+        parameterType: STRING
   outputDefinitions:
     parameters:
       Output:

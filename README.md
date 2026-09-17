@@ -4,7 +4,7 @@
 
 Kubeflow Pipelines project for rental price prediction.
 
-This repository demonstrates an end-to-end MLOps workflow: data validation, model training, quality gates, model artifact packaging, registry metadata, FastAPI serving, Docker runtime, Kubernetes/Helm deployment, GitOps promotion, monitoring, drift checks, and rollback documentation.
+This repository demonstrates a local MLOps workflow: data validation, model training, quality gates, versioned artifact packaging, registry metadata, and FastAPI inference from an approved artifact. Docker and Helm configuration, monitoring examples, and rollback runbooks provide deployment references. The local registry is JSON metadata, not an integrated MLflow promotion service; cloud deployment and real-market rental accuracy are not claimed.
 
 ## Structure
 
@@ -46,8 +46,9 @@ docs/
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e '.[dev]'
+python -m pytest -q
 ```
 
 ## Compile Pipeline
@@ -76,7 +77,8 @@ The prediction path fits the local model and scores a single rental example.
 ## Serve Predictions Locally
 
 ```bash
-uvicorn rental_mlops.serving:create_app --factory --host 0.0.0.0 --port 8000
+python main.py --no-compile --write-artifact --artifact-path outputs/model/rental-price-model.pkl
+MODEL_ARTIFACT_PATH=outputs/model/rental-price-model.pkl uvicorn rental_mlops.serving:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
 Then call:
@@ -97,14 +99,14 @@ kubectl apply -f kubernetes/argocd/application.yaml
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/RUNBOOK.md](docs/RUNBOOK.md) for model promotion, rollback, and incident handling.
 
-## Production Engineering Layer
+## Engineering Features
 
 - Dataset validation and summary reporting
 - Train/test evaluation against a mean-price baseline
 - Quality gate with RMSE, MAE, R2, and baseline-lift thresholds
 - Generated model card and JSON quality report
 - Exportable model artifact with metadata and quality report
-- MLflow-style registry record for model promotion
+- Local registry record with quality decision and image metadata
 - FastAPI serving layer with input-range monitoring warnings
 - Docker Compose API runtime
 - Helm chart and Argo CD Application for Kubernetes deployment
@@ -121,8 +123,30 @@ Use [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) to explain the data, training
 ## Run Against Kubeflow
 
 ```bash
-python main.py --host http://localhost:8080 --run
+python main.py --host http://localhost:8080 --run --dataset-uri '<cluster-accessible-dataset-uri>'
 ```
+
+Upload your CSV to storage accessible to your Kubeflow installation first. The
+pipeline imports it as a typed Dataset artifact; `--data` only selects a local
+CSV and does not upload it to the cluster. Compilation is tested locally and in
+CI; executing the compiled workflow requires your cluster and storage credentials.
+
+## Artifact and quality contract
+
+- NaN/Infinity are rejected in datasets, prediction inputs, and model metrics.
+- Failed quality gates cannot create or replace a serving artifact.
+- Artifacts contain the dataset SHA-256, training configuration, feature order,
+  feature ranges, and quality report. Writes replace the destination atomically.
+- `MODEL_ARTIFACT_PATH` selects the model actually loaded by the API. Missing,
+  rejected, or incompatible artifacts fail startup; inference does not retrain.
+- `/health` reports the selected artifact digest. Changing the artifact/image
+  changes the served model; changing a Helm label alone does not.
+- Without the environment variable, the API explicitly uses sample-training
+  mode for local exploration. Docker Compose and Helm select the baked artifact.
+- Only load pickle artifacts built by a trusted process; pickle deserialization
+  can execute code. This demo does not authenticate or sign external model files.
+- Metrics are process-local. Use a single worker per container and aggregate
+  replicas in Prometheus; durable request logging is not implemented.
 
 ## Docker
 
