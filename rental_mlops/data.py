@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from .config import DEFAULT_CONFIG, TrainingConfig
 
@@ -41,6 +42,8 @@ def validate_housing_data(frame: pd.DataFrame) -> None:
 
     if numeric_columns.isna().any().any():
         raise ValueError("housing dataset contains missing numeric values")
+    if not np.isfinite(numeric_columns.to_numpy(dtype=float)).all():
+        raise ValueError("housing dataset must contain only finite numeric values")
 
     invalid_rooms = numeric_columns["rooms"] <= 0
     invalid_sqft = numeric_columns["sqft"] <= 0
@@ -51,6 +54,9 @@ def validate_housing_data(frame: pd.DataFrame) -> None:
 
 def summarize_housing_data(frame: pd.DataFrame) -> DatasetReport:
     validate_housing_data(frame)
+    frame = frame.copy()
+    for column in REQUIRED_COLUMNS:
+        frame[column] = pd.to_numeric(frame[column])
     return DatasetReport(
         row_count=len(frame),
         column_count=len(frame.columns),
@@ -65,6 +71,8 @@ def build_feature_target(frame: pd.DataFrame, config: TrainingConfig = DEFAULT_C
     validate_housing_data(frame)
     features = frame[list(config.feature_columns)].apply(pd.to_numeric).to_numpy()
     target = pd.to_numeric(frame[config.target_column]).to_numpy()
+    if not np.isfinite(features).all() or not np.isfinite(target).all():
+        raise ValueError("features and target must contain only finite numeric values")
     return features, target
 
 
@@ -72,7 +80,9 @@ def split_feature_target(frame: pd.DataFrame, config: TrainingConfig = DEFAULT_C
     from sklearn.model_selection import train_test_split
 
     if len(frame) < 2:
-        raise ValueError("housing dataset must contain at least two rows for train/test split")
+        raise ValueError(
+            "housing dataset must contain at least two rows for train/test split"
+        )
 
     features, target = build_feature_target(frame, config)
     return train_test_split(

@@ -2,6 +2,8 @@ services:
   api:
     build: .
     command: uvicorn rental_mlops.serving:create_app --factory --host 0.0.0.0 --port 8000
+    environment:
+      MODEL_ARTIFACT_PATH: /app/outputs/model/rental-price-model.pkl
     ports:
       - "8000:8000"
     healthcheck:
