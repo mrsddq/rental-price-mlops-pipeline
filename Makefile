@@ -2,10 +2,10 @@
 
 install:
 	python -m pip install --upgrade pip
-	python -m pip install -r requirements.txt
+	python -m pip install -e ".[dev]"
 
 test:
-	python -m unittest discover -s tests
+	python -m pytest -q
 
 compile:
 	python main.py --compile-only --output rental_price_prediction_pipeline.yaml

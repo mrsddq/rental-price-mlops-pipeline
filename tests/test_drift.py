@@ -30,6 +30,14 @@ class DriftReportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-negative"):
             compare_dataset_profiles(baseline, baseline, threshold=-0.1)
 
+    def test_compare_dataset_profiles_rejects_nonfinite_threshold(self):
+        baseline = pd.DataFrame({"rooms": [2], "sqft": [800], "price": [1200]})
+
+        for threshold in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(threshold=threshold):
+                with self.assertRaisesRegex(ValueError, "finite"):
+                    compare_dataset_profiles(baseline, baseline * 10, threshold)
+
 
 if __name__ == "__main__":
     unittest.main()

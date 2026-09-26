@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -38,8 +39,8 @@ def compare_dataset_profiles(
     candidate: pd.DataFrame,
     threshold: float = 0.25,
 ) -> DriftReport:
-    if threshold < 0:
-        raise ValueError("drift threshold must be non-negative")
+    if not math.isfinite(threshold) or threshold < 0:
+        raise ValueError("drift threshold must be finite and non-negative")
 
     baseline_numeric = _numeric_frame(baseline)
     candidate_numeric = _numeric_frame(candidate)
